@@ -170,7 +170,6 @@ class MainActivity : ComponentActivity() {
                                         contentDescription = "DUMMY: Confirm"
                                     )
                                 }
-                                //TextButton(onClick = { openDialog.value = false }) { Text("Confirm") }
                             },
                             dismissButton = {
                                 IconButton(onClick = {showGoAllowedSite = false}) {
@@ -179,64 +178,8 @@ class MainActivity : ComponentActivity() {
                                         contentDescription = "DUMMY: Close"
                                     )
                                 }
-                                //TextButton(onClick = { openDialog.value = false }) { Text("Dismiss") }
+
                             }
-                        )
-//                        GoToSiteDialog(siteInputState, onDismissRequest = {
-//                            showGoAllowedSite = false
-//                        }, onValueChange = { value ->
-//                            siteInputState = value
-//                        }) {
-//                            webViewNavigator.loadUrl(siteInputState)
-//                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true)
-@Composable
-fun GoToSiteDialogPreview() {
-    BasicAlertDialog(
-        onDismissRequest = {
-
-        }) {
-        Card (
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(all = 32.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column (modifier = Modifier.padding(32.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("DUMMY: Go to allowed site", fontSize = 24.sp)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = "DUMMY: Allowed sites",
-                        Modifier.size(14.dp)
-                    )
-                }
-                OutlinedTextField("", onValueChange = {
-
-                })
-                Row() {
-                    // (Modifier.fillMaxWidth())
-                    IconButton(onClick = {}) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = "DUMMY: Confirm"
-                        )
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "DUMMY: Exit"
                         )
                     }
                 }
