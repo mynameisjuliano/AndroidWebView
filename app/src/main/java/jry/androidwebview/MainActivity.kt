@@ -3,7 +3,10 @@ package jry.androidwebview
 import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
-import android.widget.ImageButton
+import android.webkit.WebViewClient
+import android.webkit.WebView
+import android.webkit.WebResourceRequest
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -32,6 +35,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -47,12 +51,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.HorizontalAlignmentLine
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.kevinnzou.web.AccompanistWebViewClient
 import com.kevinnzou.web.LoadingState
 import com.kevinnzou.web.WebView
 import com.kevinnzou.web.rememberWebViewNavigator
@@ -76,6 +82,8 @@ class MainActivity : ComponentActivity() {
 
                 var showGoAllowedSite by remember { mutableStateOf(false) }
                 var siteInputState by remember { mutableStateOf("") }
+                var showExitDialog by remember { mutableStateOf(false) }
+                
                 Scaffold (
                     topBar = {
                         TopAppBar(
@@ -84,7 +92,11 @@ class MainActivity : ComponentActivity() {
                                 titleContentColor = MaterialTheme.colorScheme.primary,
                             ),
                             title = {
-                                Text("Small Top App Bar")
+                                Text(
+                                    webViewState.pageTitle?: "...",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             },
                             navigationIcon = {
                                 if(webViewNavigator.canGoBack) {
@@ -93,7 +105,8 @@ class MainActivity : ComponentActivity() {
                                             webViewNavigator.navigateBack()
                                     }) {
                                         Icon(Icons.AutoMirrored.Default.ArrowBack,
-                                            "DUMMY: Back")
+                                            "DUMMY: Back"
+                                        )
                                     }
 
                                 }
@@ -113,28 +126,58 @@ class MainActivity : ComponentActivity() {
                                 IconButton(onClick = { showGoAllowedSite = true }) {
                                     Icon(Icons.Default.Edit, contentDescription = "DUMMY: Goto")
                                 }
+                                IconButton(onClick = { showExitDialog = true }) {
+                                    Icon(Icons.Default.Close, contentDescription = "DUMMY: Exit")
+                                }
                             }
                         )
                     }
                 ) { innerPadding ->
-                    val loadingState = webViewState.loadingState
-                    if(loadingState is LoadingState.Loading) {
-                        LinearProgressIndicator(
-                            progress = { loadingState.progress },
-                            modifier =  Modifier.fillMaxWidth()
+                    Column {
+                        val loadingState = webViewState.loadingState
+                        if(loadingState is LoadingState.Loading) {
+                            LinearProgressIndicator(
+                                progress = { loadingState.progress },
+                                modifier =  Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.secondary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
-                    }
-                    WebView(state = webViewState,
-                        navigator = webViewNavigator,
-                        modifier = Modifier.padding(innerPadding),
-                        onCreated = {
-                            it.settings.javaScriptEnabled = true
-                            it.settings.domStorageEnabled = true
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                it.settings.isAlgorithmicDarkeningAllowed = true
-                            }
-                        })
+                        }
+                        WebView(state = webViewState,
+                            navigator = webViewNavigator,
+                            modifier = Modifier.padding(innerPadding)
+                                .fillMaxSize(),
+                            onCreated = {
+                                it.settings.javaScriptEnabled = true
+                                it.settings.domStorageEnabled = true
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    it.settings.isAlgorithmicDarkeningAllowed = true
+                                }
+                            },
+                            client = remember {
+                                object : AccompanistWebViewClient() {
+                                    override fun shouldOverrideUrlLoading(webView : WebView, request : WebResourceRequest) : Boolean { // Toast.makeText(this@MainActivity, "Triggered", Toast.LENGTH_LONG).show()
+                                        return true
+                                    }
 
+                                    override fun shouldOverrideUrlLoading(webView : WebView, url : String) : Boolean {
+                                        // Toast.makeText(this@MainActivity, "Triggered", Toast.LENGTH_LONG).show()
+                                        return true
+                                    }
+                                }
+                            }
+                            
+                        )
+                    }
+                    if(showExitDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showExitDialog = false },
+                            title = { Text(text = "Exit?") },
+                            text = { Text(text = "Are you sure you want to exit?") },
+                            confirmButton = { TextButton(onClick = { finish() }) { Text("Yes") } },
+                            dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("No") } }
+                        )
+                    }
                     if(showGoAllowedSite) {
                         AlertDialog(
                             onDismissRequest = {
@@ -163,6 +206,7 @@ class MainActivity : ComponentActivity() {
                             confirmButton = {
                                 IconButton(onClick = {
                                     webViewNavigator.loadUrl(siteInputState)
+                                    siteInputState = ""
                                     showGoAllowedSite = false
                                 }) {
                                     Icon(
