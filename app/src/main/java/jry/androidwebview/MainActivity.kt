@@ -121,7 +121,7 @@ class MainActivity : ComponentActivity() {
 
 
                 if (intent.action == Intent.ACTION_VIEW || intent.action == Intent.ACTION_SEND) {
-                    intent.
+
                 }
                 Scaffold (
                     topBar = {
