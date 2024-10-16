@@ -3,30 +3,24 @@ package jry.androidwebview
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.ClipData
-import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.webkit.DownloadListener
-import android.webkit.WebViewClient
 import android.webkit.WebView
 import android.webkit.WebResourceRequest
 import android.webkit.WebView.HitTestResult
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.ComponentActivity.DOWNLOAD_SERVICE
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,21 +29,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.AutoMode
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -65,10 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,22 +65,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.layout.HorizontalAlignmentLine
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.kevinnzou.web.AccompanistWebViewClient
 import com.kevinnzou.web.LoadingState
 import com.kevinnzou.web.WebView
 import com.kevinnzou.web.rememberWebViewNavigator
 import com.kevinnzou.web.rememberWebViewState
 import jry.androidwebview.ui.theme.AndroidWebViewTheme
-import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -106,8 +86,6 @@ class MainActivity : ComponentActivity() {
         // TODO: make transparent navigation bar
         setContent {
             AndroidWebViewTheme {
-                val webViewState = rememberWebViewState(url = getString(R.string.default_home_page))
-                val webViewNavigator = rememberWebViewNavigator()
 
 
                 var showGoAllowedSite by remember { mutableStateOf(false) }
@@ -115,14 +93,27 @@ class MainActivity : ComponentActivity() {
                 var showExitDialog by remember { mutableStateOf(false) }
                 
                 var topBarMenuExpanded by remember { mutableStateOf(false) }
-                var hitUri by remember { mutableStateOf("") }
+                var hitUrl by remember { mutableStateOf("") }
                 var showHitUrlAnchor by remember { mutableStateOf(false) }
                 var showHitImgAnchor by remember { mutableStateOf(false) }
 
 
-                if (intent.action == Intent.ACTION_VIEW || intent.action == Intent.ACTION_SEND) {
+                var initialLink by remember { mutableStateOf(getString(R.string.default_home_page)) }
 
+                if (intent.action == Intent.ACTION_SEND) {
+                    initialLink = intent.getStringExtra(Intent.EXTRA_TEXT)?: ""
+                } else if (intent.action == Intent.ACTION_VIEW) {
+                    initialLink = intent.dataString?: ""
                 }
+
+                val webViewState = rememberWebViewState(initialLink)
+                val webViewNavigator = rememberWebViewNavigator()
+                var lastPageTitle by remember { mutableStateOf(getString(R.string.default_page_title)) }
+
+                if(webViewState.pageTitle != null) {
+                    lastPageTitle = webViewState.pageTitle!!
+                }
+
                 Scaffold (
                     topBar = {
                         TopAppBar(
@@ -132,7 +123,7 @@ class MainActivity : ComponentActivity() {
                             ),
                             title = {
                                 Text(
-                                    webViewState.pageTitle?: getString(R.string.default_page_title),
+                                    lastPageTitle,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -152,7 +143,7 @@ class MainActivity : ComponentActivity() {
                             },
                             actions = {
 
-                                if(webViewNavigator.canGoForward) {
+                                if (webViewNavigator.canGoForward) {
                                     IconButton(onClick = { webViewNavigator.navigateForward() }) {
                                         Icon(
                                             Icons.AutoMirrored.Default.ArrowForward,
@@ -161,53 +152,68 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
-
-                                IconButton(onClick = { topBarMenuExpanded = true }) {
+                                IconButton(onClick = { webViewNavigator.reload() }) {
                                     Icon(
-                                        Icons.Default.MoreVert,
-                                        contentDescription = getString(R.string.top_bar_forward)
+                                        Icons.Default.Refresh,
+                                        contentDescription = getString(R.string.option_refresh)
                                     )
                                 }
 
-                                DropdownMenu(expanded = topBarMenuExpanded,
-                                    onDismissRequest = { topBarMenuExpanded = false }) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(getString(R.string.option_refresh))
-                                        },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.Refresh, contentDescription = getString(R.string.option_refresh))
-                                        },
-                                        onClick = {
-                                            webViewNavigator.reload()
-                                        }
+                                IconButton(
+                                    onClick = {
+                                        siteInputState = webViewState.lastLoadedUrl ?: ""
+                                        showGoAllowedSite = true
+                                    }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Default.OpenInNew,
+                                        contentDescription = getString(R.string.option_go_to)
                                     )
+                                }
 
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(getString(R.string.option_go_to))
-                                        },
-                                        leadingIcon = {
-                                            Icon(Icons.AutoMirrored.Default.OpenInNew, contentDescription = getString(R.string.option_go_to))
-                                        },
-                                        onClick = {
-                                            siteInputState = webViewState.lastLoadedUrl?: ""
-                                            showGoAllowedSite = true
-                                        }
-                                    )
 
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(getString(R.string.option_exit))
-                                        },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.Close, contentDescription = getString(R.string.option_exit))
-                                        },
-                                        onClick = {
-                                            showExitDialog = true
-                                        }
-                                    )
+                                Box {
+                                    IconButton(onClick = { topBarMenuExpanded = true }) {
+                                        Icon(
+                                            Icons.Default.MoreVert,
+                                            contentDescription = getString(R.string.top_bar_forward)
+                                        )
+                                    }
 
+                                    DropdownMenu(expanded = topBarMenuExpanded,
+                                        onDismissRequest = { topBarMenuExpanded = false }) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(getString(R.string.option_share))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.Share,
+                                                    contentDescription = getString(R.string.option_share)
+                                                )
+                                            },
+                                            onClick = {
+                                                shareLink(webViewState.lastLoadedUrl ?: "")
+                                                topBarMenuExpanded = false
+                                            }
+                                        )
+
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(getString(R.string.option_exit))
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.Close,
+                                                    contentDescription = getString(R.string.option_exit)
+                                                )
+                                            },
+                                            onClick = {
+                                                showExitDialog = true
+                                                topBarMenuExpanded = false
+                                            }
+                                        )
+
+                                    }
                                 }
                             }
                         )
@@ -245,7 +251,7 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     webView.setOnLongClickListener {
-                                        hitUri = webView.hitTestResult.extra?: ""
+                                        hitUrl = webView.hitTestResult.extra?: ""
                                         if(webView.hitTestResult.type == HitTestResult.SRC_ANCHOR_TYPE) {
                                             showHitUrlAnchor = true
                                         } else if (webView.hitTestResult.type == HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
@@ -278,13 +284,13 @@ class MainActivity : ComponentActivity() {
 
                     if(showHitUrlAnchor) {
                         BasicPopupOptionDialog(
-                            hitUri,
+                            hitUrl,
                             onDismissRequest = { showHitUrlAnchor = false }) {
                             PopupDialogOption(
                                 Icons.AutoMirrored.Default.OpenInNew,
                                 getString(R.string.link_open)
                             ) {
-                                webViewNavigator.loadUrl(hitUri)
+                                webViewNavigator.loadUrl(hitUrl)
                                 showHitUrlAnchor = false
                             }
                             PopupDialogOption(
@@ -297,7 +303,7 @@ class MainActivity : ComponentActivity() {
                                     ClipData(
                                         "LINK",
                                         arrayOf<String>(),
-                                        ClipData.Item(hitUri)
+                                        ClipData.Item(hitUrl)
                                     )
                                 )
 
@@ -312,14 +318,7 @@ class MainActivity : ComponentActivity() {
                                 Icons.Default.Share,
                                 getString(R.string.link_share)
                             ) {
-                                val sendIntent: Intent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, hitUri)
-                                    type = "text/plain"
-                                }
-
-                                val shareIntent = Intent.createChooser(sendIntent, null)
-                                startActivity(shareIntent)
+                                shareLink(hitUrl)
                                 showHitUrlAnchor = false
                             }
                             PopupDialogOption(
@@ -328,7 +327,7 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 val openIntent: Intent = Intent().apply {
                                     action = Intent.ACTION_VIEW
-                                    setData(Uri.parse(hitUri))
+                                    setData(Uri.parse(hitUrl))
                                 }
 
                                 startActivity(openIntent)
@@ -339,20 +338,20 @@ class MainActivity : ComponentActivity() {
 
                     if(showHitImgAnchor) {
                         BasicPopupOptionDialog(
-                            getString(R.string.link_image).format(hitUri),
+                            getString(R.string.link_image).format(hitUrl),
                             onDismissRequest = { showHitImgAnchor = false }) {
                             PopupDialogOption(
                                 Icons.AutoMirrored.Default.OpenInNew,
                                 getString(R.string.link_open_image)
                             ) {
-                                webViewNavigator.loadUrl(hitUri)
+                                webViewNavigator.loadUrl(hitUrl)
                                 showHitImgAnchor = false
                             }
                             PopupDialogOption(
                                 Icons.Default.Save,
                                 getString(R.string.link_save_image)
                             ) {
-                                downloadInUrl(hitUri)
+                                downloadInUrl(hitUrl)
                                 showHitImgAnchor = false
                             }
                         }
@@ -435,6 +434,17 @@ class MainActivity : ComponentActivity() {
             ),
             Toast.LENGTH_LONG
         ).show()
+    }
+
+    private fun shareLink(url : String) {
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, url)
+            type = "text/plain"
+        }
+
+        val shareIntent = Intent.createChooser(sendIntent, null)
+        startActivity(shareIntent)
     }
 }
 

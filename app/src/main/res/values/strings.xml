@@ -13,6 +13,7 @@
     <string name="top_bar_back">Back</string>
     <string name="top_bar_forward">Forward</string>
     <string name="option_refresh">Refresh</string>
+    <string name="option_share">Share...</string>
     <string name="option_go_to">Navigate</string>
     <string name="option_exit">Exit</string>
     <string name="download_message">Downloading "%s"</string>
