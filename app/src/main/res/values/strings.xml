@@ -1,3 +1,27 @@
 <resources>
     <string name="app_name">AndroidWebView</string>
+    <string name="default_home_page">jw.org</string>
+    <string name="default_page_title">AndroidWebView</string>
+    <string name="dialog_back">Back</string>
+    <string name="dialog_exit_title">Exit?</string>
+    <string name="dialog_exit_summary">Are you sure you want to exit?</string>
+    <string name="dialog_go_to_header">Navigate:</string>
+    <string name="dialog_confirm">Confirm</string>
+    <string name="dialog_close">Close</string> <!-- a different exit, for go_to dialog -->
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_no">No</string>
+    <string name="top_bar_back">Back</string>
+    <string name="top_bar_forward">Forward</string>
+    <string name="option_refresh">Refresh</string>
+    <string name="option_go_to">Navigate</string>
+    <string name="option_exit">Exit</string>
+    <string name="download_message">Downloading "%s"</string>
+    <string name="link_open">Open Link</string>
+    <string name="link_copy">Copy Link</string>
+    <string name="link_share">Share Link</string>
+    <string name="link_open_other">Open Link in Other App</string>
+    <string name="link_copied">Link copied</string>
+    <string name="link_image">Image: %s</string>
+    <string name="link_open_image">Open Image</string>
+    <string name="link_save_image">Save Image</string>
 </resources>
